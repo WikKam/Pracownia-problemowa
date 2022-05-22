@@ -24,21 +24,22 @@ def crossover(mutated, target, dims, cr):
     trial = [mutated[i] if p[i] < cr else target[i] for i in range(dims)]
     return np.array(trial)
 
-def differential_evolution(vector_range, obj_func, pop_size: int, max_iters: int, scale_factor: float, cr: float, starting_population=None):
+def differential_evolution(vector_range, problem, pop_size: int, max_iters: int, scale_factor: float, cr: float, starting_population=None, budget: int=None):
     population = generate_population(vector_range, pop_size) if starting_population is None else starting_population 
-    obj_evals = [obj_func(x) for x in population]
+    obj_evals = [problem(x) for x in population]
     best_candidate_index = np.argmin(obj_evals)
     best_current_index = best_candidate_index
     best_candidate = population[best_candidate_index]
     best_obj_value = obj_evals[best_candidate_index]
     for iter in range(max_iters):
+        if budget is not None and problem.evaluations < budget and not problem.final_target_hit: break
         for parent_index in range(pop_size):
             target, rand_1, rand_2 = choose_candidates(parent_index, population)
             mutation = target + scale_factor * (rand_2 - rand_1)
             mutation = fix_mutation(mutation, vector_range)
             trial = crossover(mutation, population[parent_index], len(mutation), cr)
-            obj_trial = obj_func(trial)
-            obj_current = obj_func(population[parent_index])
+            obj_trial = problem(trial)
+            obj_current = problem(population[parent_index])
             if obj_trial < obj_current:
                 population[parent_index] = trial
                 obj_evals[parent_index] = obj_trial
